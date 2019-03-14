@@ -1,6 +1,10 @@
 import os
 import click
-from flask import Flask, render_template
+from flask import Flask, render_template, flash, redirect, url_for, request
+from flask_wtf import Form
+from wtforms import StringField, SubmitField
+from wtforms.validators import Required, Length
+# from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
 
 
@@ -11,7 +15,13 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + \
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev')
 
+# bootstrap = Bootstrap(app)
 db = SQLAlchemy(app)
+
+class AddMovieForm(Form):
+    title = StringField('Title', validators=[Required(), Length(1,60)])
+    year = StringField('Year', validators=[Required(), Length(1,4)])
+    submit = SubmitField('Add')
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -64,10 +74,23 @@ def inject_user():
     user = User.query.first()
     return dict(user=user)
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
+    form = AddMovieForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            title = form.title.data
+            year = form.year.data
+            movie = Movie(title=title, year=year)
+            db.session.add(movie)
+            db.session.commit()
+            flash('Item created.')
+            return redirect(url_for('index'))
+        else:
+            flash('Invalid input')
+            return redirect(url_for('index'))
     movies = Movie.query.all()
-    return render_template('index.html', movies=movies)
+    return render_template('index.html', movies=movies, form=form)
 
 @app.errorhandler(404)
 def page_not_found(e):
