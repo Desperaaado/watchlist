@@ -18,7 +18,7 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev')
 # bootstrap = Bootstrap(app)
 db = SQLAlchemy(app)
 
-class AddMovieForm(Form):
+class MovieForm(Form):
     title = StringField('Title', validators=[Required(), Length(1,60)])
     year = StringField('Year', validators=[Required(), Length(1,4)])
     submit = SubmitField('Add')
@@ -76,7 +76,7 @@ def inject_user():
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    form = AddMovieForm()
+    form = MovieForm()
     if request.method == 'POST':
         if form.validate_on_submit():
             title = form.title.data
@@ -91,6 +91,34 @@ def index():
             return redirect(url_for('index'))
     movies = Movie.query.all()
     return render_template('index.html', movies=movies, form=form)
+
+@app.route('/movie/edit/<int:movie_id>', methods=['GET', 'POST'])
+def movie_edit(movie_id):
+    movie = Movie.query.get_or_404(movie_id)
+    form = MovieForm()
+    if request.method == 'POST':
+        if form.validate_on_submit() == True:
+            movie.title = form.title.data
+            movie.year = form.year.data
+            db.session.commit()
+            flash('Item updated.')
+            return redirect(url_for('index'))
+        else:
+            flash('Invalid input')
+            return redirect(url_for('movie_edit', movie_id=movie_id))
+    
+    form.title.data = movie.title
+    form.year.data = movie.year
+    return render_template('movie_edit.html', form=form, movie=movie)
+
+@app.route('/movie/delete/<int:movie_id>', methods=['POST'])
+def movie_delete(movie_id):
+    movie = Movie.query.get_or_404(movie_id)
+    db.session.delete(movie)
+    db.session.commit()
+    flash('Item deleted.')
+    return redirect(url_for('index'))
+
 
 @app.errorhandler(404)
 def page_not_found(e):
