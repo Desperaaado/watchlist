@@ -1,14 +1,15 @@
 import os
+
 import click
-from flask import Flask, render_template, flash, redirect, url_for, request
+from flask import Flask, flash, redirect, render_template, request, url_for
+from werkzeug.security import check_password_hash, generate_password_hash
+
+from flask_login import (LoginManager, UserMixin, login_required, login_user,
+                         logout_user, current_user)
+from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
-from wtforms.validators import Required, Length
-# from flask_bootstrap import Bootstrap
-from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import LoginManager, UserMixin, login_user
-
+from wtforms.validators import Length, Required
 
 app = Flask(__name__)
 
@@ -17,7 +18,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + \
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev')
 
-# bootstrap = Bootstrap(app)
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 
@@ -114,7 +114,6 @@ def forge():
     db.session.commit()
     click.echo('Made data.')
 
-
 @app.context_processor
 def inject_user():
     user = User.query.first()
@@ -124,6 +123,10 @@ def inject_user():
 def index():
     form = MovieForm()
     if request.method == 'POST':
+        if not current_user.is_authenticated:
+            flash('Please Login.')
+            return redirect(url_for('login'))
+
         if form.validate_on_submit():
             title = form.title.data
             year = form.year.data
@@ -139,6 +142,7 @@ def index():
     return render_template('index.html', movies=movies, form=form)
 
 @app.route('/movie/edit/<int:movie_id>', methods=['GET', 'POST'])
+@login_required
 def movie_edit(movie_id):
     movie = Movie.query.get_or_404(movie_id)
     form = MovieForm()
@@ -159,6 +163,7 @@ def movie_edit(movie_id):
     return render_template('movie_edit.html', form=form, movie=movie)
 
 @app.route('/movie/delete/<int:movie_id>', methods=['POST'])
+@login_required
 def movie_delete(movie_id):
     movie = Movie.query.get_or_404(movie_id)
     db.session.delete(movie)
@@ -187,6 +192,12 @@ def login():
             return redirect(url_for('login'))
     return render_template('login.html', form=form)
 
+@app.route('/logout', methods=['GET'])
+@login_required
+def logout():
+    logout_user()
+    flash('GoodBye.')
+    return redirect(url_for('index'))
 
 @app.errorhandler(404)
 def page_not_found(e):
