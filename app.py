@@ -45,7 +45,7 @@ class User(db.Model, UserMixin):
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
-    def velidate_password(self, password):
+    def validate_password(self, password):
         return check_password_hash(self.password_hash, password)
 
 class Movie(db.Model):
@@ -136,7 +136,7 @@ def index():
             flash('Item created.')
             return redirect(url_for('index'))
         else:
-            flash('Invalid input')
+            flash('Invalid input.')
             return redirect(url_for('index'))
     movies = Movie.query.all()
     return render_template('index.html', movies=movies, form=form)
@@ -154,8 +154,7 @@ def movie_edit(movie_id):
             flash('Item updated.')
             return redirect(url_for('index'))
         else:
-            print('>>>>>>', form.errors)
-            flash('Invalid input')
+            flash('Invalid input.')
             return redirect(url_for('movie_edit', movie_id=movie_id))
     
     form.title.data = movie.title
@@ -179,7 +178,7 @@ def login():
             user = User.query.first()
             user_name = form.user_name.data
             password = form.password.data
-            if user.user_name == user_name and user.velidate_password(password):
+            if user.user_name == user_name and user.validate_password(password):
                 login_user(user)
                 flash("Login success.")
                 return redirect(url_for('index'))
