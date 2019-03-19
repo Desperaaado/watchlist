@@ -4,6 +4,7 @@ __pycache__
 .DS_Store
 .env
 *.db
-htmlcov
+htmlcov/
+.coverage
 Pipfile.lock
 Pipfile
