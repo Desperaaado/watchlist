@@ -9,19 +9,21 @@ from app.models import User, Movie
               hide_input=True, 
               confirmation_prompt=True,
               help="The password used to login.")
-def admin(username, password):
+@click.option('--nickname', prompt=True, help="Nickname.")
+def admin(username, password, nickname):
     db.create_all()
     user = User.query.first()
 
     if not user:
         click.echo("Creating administrator...")
-        user = User(user_name=username, name='Admin')
+        user = User(user_name=username, name=nickname)
         user.set_password(password)
         user.user_name = username
         user.set_password(password)
         db.session.add(user)
     else:
         user.user_name = username
+        user.name = nickname
         user.set_password(password)
 
     db.session.commit()
